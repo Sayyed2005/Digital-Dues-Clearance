@@ -9,7 +9,7 @@ if(isset($_GET['logout']))
     exit();
 }
 // 🔐 Admin Check
-if($_SESSION['role'] != 'exam'){
+if($_SESSION['role'] != 'lab'){
     header("Location: ../login.php");
     exit();
 }
@@ -21,16 +21,16 @@ if($_SESSION['role'] != 'exam'){
 $total = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) c FROM students"))['c'];
 
 $cleared = mysqli_fetch_assoc(
-mysqli_query($conn,"SELECT COUNT(*) c FROM dues WHERE exam_due=0"))['c'];
+mysqli_query($conn,"SELECT COUNT(*) c FROM dues WHERE lab_due=0"))['c'];
 
 $pending = mysqli_fetch_assoc(
-mysqli_query($conn,"SELECT COUNT(*) c FROM dues WHERE exam_due>0"))['c'];
+mysqli_query($conn,"SELECT COUNT(*) c FROM dues WHERE lab_due>0"))['c'];
 
 /* ================================
    FETCH DATA
 ================================ */
 
-$query = "SELECT students.name, students.prn, dues.exam_due, dues.status, students.student_id
+$query = "SELECT students.name, students.prn, dues.lab_due, dues.status, students.student_id
           FROM students
           JOIN dues ON students.student_id = dues.student_id";
 
@@ -41,7 +41,7 @@ $result = mysqli_query($conn,$query);
 <!DOCTYPE html>
 <html>
 <head>
-<title>Exam Dashboard</title>
+<title>Lab Dashboard</title>
 
 <style>
 
@@ -82,7 +82,7 @@ cursor:pointer;
 <body>
 
 <div style="display:flex; justify-content:space-between; align-items:center; margin:20px;">
-    <h2>Exam Dashboard</h2>
+    <h2>Lab Dashboard</h2>
     <a href="?logout=true">
         <button style="background:red; color:white; border:none; padding:8px 15px; border-radius:5px;">
             Logout
@@ -91,7 +91,6 @@ cursor:pointer;
 </div>
 
 <!-- Cards -->
-
 <div class="cards">
 
 <div class="card">
@@ -118,7 +117,7 @@ Pending<br>
 <tr>
 <th>Name</th>
 <th>PRN</th>
-<th>Exam Due</th>
+<th>Lab Due</th>
 <th>Status</th>
 <th>Action</th>
 </tr>
@@ -131,13 +130,13 @@ Pending<br>
 
 <td><?= htmlspecialchars($row['prn']) ?></td>
 
-<td><?= htmlspecialchars($row['exam_due']) ?></td>
+<td><?= htmlspecialchars($row['lab_due']) ?></td>
 
 <td><?= htmlspecialchars($row['status']) ?></td>
 
 <td>
 
-<a href="delete_due.php?id=<?= $row['student_id'] ?>&type=exam">
+<a href="delete_due.php?id=<?= $row['student_id'] ?>&type=lab">
 <button>Clear</button>
 </a>
 
