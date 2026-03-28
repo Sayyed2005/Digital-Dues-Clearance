@@ -1,9 +1,15 @@
 <?php
 session_start();
 include "../config.php";
-
+// 🔓 Logout
+if(isset($_GET['logout']))
+{
+    session_destroy();
+    header("Location: ../login.php");
+    exit();
+}
 // 🔐 Admin Check
-if($_SESSION['role'] != 'admin'){
+if($_SESSION['role'] != 'exam'){
     header("Location: ../login.php");
     exit();
 }
@@ -75,7 +81,14 @@ cursor:pointer;
 
 <body>
 
-<h2 style="margin:20px;">Exam Dashboard</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin:20px;">
+    <h2>Exam Dashboard</h2>
+    <a href="?logout=true">
+        <button style="background:red; color:white; border:none; padding:8px 15px; border-radius:5px;">
+            Logout
+        </button>
+    </a>
+</div>
 
 <!-- Cards -->
 
