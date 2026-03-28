@@ -1,139 +1,108 @@
 <?php
 session_start();
 include "../config.php";
-
-// 🔐 Admin Check
+// 🔓 Logout
+if(isset($_GET['logout']))
+{
+    session_destroy();
+    header("Location: ../login.php");
+    exit();
+}
+// 🔐 Only admin
 if($_SESSION['role'] != 'admin'){
     header("Location: ../login.php");
     exit();
 }
 
-/* ================================
-   FETCH COUNTS
-================================ */
+if(isset($_POST['upload']))
+{
+    $dept_type = $_POST['type']; // accounts/library/lab/exam
 
-$total = mysqli_fetch_assoc(mysqli_query($conn,"SELECT COUNT(*) c FROM students"))['c'];
+    if($_FILES['file']['error'] == 0)
+    {
+        $file = $_FILES['file']['tmp_name'];
+        $handle = fopen($file,"r");
 
-$cleared = mysqli_fetch_assoc(
-mysqli_query($conn,"SELECT COUNT(*) c FROM dues WHERE lab_due=0"))['c'];
+        fgetcsv($handle); // skip header
 
-$pending = mysqli_fetch_assoc(
-mysqli_query($conn,"SELECT COUNT(*) c FROM dues WHERE lab_due>0"))['c'];
+        while(($data = fgetcsv($handle,1000,",")) !== FALSE)
+        {
+            if(empty($data[0]) || empty($data[1])) continue;
 
-/* ================================
-   FETCH DATA
-================================ */
+            $prn = trim($data[0]);
+            $amount = (int)$data[1];
 
-$query = "SELECT students.name, students.prn, dues.lab_due, dues.status, students.student_id
-          FROM students
-          JOIN dues ON students.student_id = dues.student_id";
+            // 🔍 Find student
+            $s = mysqli_query($conn,"SELECT student_id FROM students WHERE prn='$prn'");
+            if(mysqli_num_rows($s) > 0)
+            {
+                $student = mysqli_fetch_assoc($s);
+                $sid = $student['student_id'];
 
-$result = mysqli_query($conn,$query);
+                // 🔥 Dynamic column
+                $column = $dept_type . "_due";
 
+                // ✅ Update only that department due
+                mysqli_query($conn,"UPDATE dues 
+                                    SET $column='$amount' 
+                                    WHERE student_id='$sid'");
+
+                // 🧠 SMART STATUS LOGIC
+                $check = mysqli_query($conn,"SELECT accounts_due, library_due, lab_due, exam_due FROM dues WHERE student_id='$sid'");
+                $dues = mysqli_fetch_assoc($check);
+
+                $total_due = $dues['accounts_due'] + $dues['library_due'] + $dues['lab_due'] + $dues['exam_due'];
+
+                if($total_due > 0){
+                    mysqli_query($conn,"UPDATE dues SET status='Pending' WHERE student_id='$sid'");
+                } else {
+                    mysqli_query($conn,"UPDATE dues SET status='Cleared' WHERE student_id='$sid'");
+                }
+            }
+        }
+
+        fclose($handle);
+        echo "<script>alert('Department Data Uploaded Successfully');</script>";
+    }
+}
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-<title>Lab Dashboard</title>
-
+<title>Department Upload</title>
 <style>
-
 body { font-family: Arial; background:#f5f7fa; }
-
-.cards { display:flex; gap:20px; margin:20px; }
-
-.card {
-padding:20px;
-background:white;
-border-radius:10px;
-flex:1;
-text-align:center;
-}
-
-table {
-width:95%;
-margin:20px;
-border-collapse:collapse;
-background:white;
-}
-
-th,td {
-padding:10px;
-border:1px solid #ddd;
-text-align:center;
-}
-
-button {
-padding:5px 10px;
-cursor:pointer;
-}
-
+.box { margin:50px auto; width:400px; background:white; padding:20px; border-radius:10px; }
 </style>
-
 </head>
 
 <body>
 
-<h2 style="margin:20px;">Lab Dashboard</h2>
+<div class="box">
+<h3>Upload Department File</h3>
+    <a href="?logout=true">
+        <button style="background:red; color:white; border:none; padding:8px 15px; border-radius:5px;">
+            Logout
+        </button>
+    </a>
 
-<!-- Cards -->
-<div class="cards">
+<form method="post" enctype="multipart/form-data">
 
-<div class="card">
-Total Students<br>
-<b><?= $total ?></b>
+<select name="type" required>
+<option value="">Select Department</option>
+<option value="accounts">Accounts</option>
+<option value="library">Library</option>
+<option value="lab">Lab</option>
+<option value="exam">Exam</option>
+</select><br><br>
+
+<input type="file" name="file" required><br><br>
+
+<button name="upload">Upload</button>
+
+</form>
 </div>
-
-<div class="card">
-Cleared<br>
-<b><?= $cleared ?></b>
-</div>
-
-<div class="card">
-Pending<br>
-<b><?= $pending ?></b>
-</div>
-
-</div>
-
-<!-- Table -->
-
-<table>
-
-<tr>
-<th>Name</th>
-<th>PRN</th>
-<th>Lab Due</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-
-<?php while($row=mysqli_fetch_assoc($result)) { ?>
-
-<tr>
-
-<td><?= htmlspecialchars($row['name']) ?></td>
-
-<td><?= htmlspecialchars($row['prn']) ?></td>
-
-<td><?= htmlspecialchars($row['lab_due']) ?></td>
-
-<td><?= htmlspecialchars($row['status']) ?></td>
-
-<td>
-
-<a href="delete_due.php?id=<?= $row['student_id'] ?>&type=lab">
-<button>Clear</button>
-</a>
-
-</td>
-
-</tr>
-
-<?php } ?>
-
-</table>
 
 </body>
 </html>
