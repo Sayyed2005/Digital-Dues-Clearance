@@ -1,8 +1,14 @@
 <?php
 session_start();
 include "../config.php";
-
-if($_SESSION['role'] != 'admin'){
+// 🔓 Logout
+if(isset($_GET['logout']))
+{
+    session_destroy();
+    header("Location: ../login.php");
+    exit();
+}
+if($_SESSION['role'] != 'library'){
     header("Location: ../login.php");
     exit();
 }
@@ -35,7 +41,14 @@ button{padding:5px 10px;}
 
 <body>
 
-<h2 style="margin:20px;">Library Dashboard</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin:20px;">
+    <h2>Library Dashboard</h2>
+    <a href="?logout=true">
+        <button style="background:red; color:white; border:none; padding:8px 15px; border-radius:5px;">
+            Logout
+        </button>
+    </a>
+</div>
 
 <div class="cards">
 <div class="card">Total Students<br><b><?= $total ?></b></div>
